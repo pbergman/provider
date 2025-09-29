@@ -1,4 +1,4 @@
-package transip
+package provider
 
 import (
 	"context"
