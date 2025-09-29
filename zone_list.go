@@ -7,7 +7,7 @@ import (
 	"github.com/libdns/libdns"
 )
 
-func ListZones(ctx context.Context, mutex sync.Locker, client ClientDomainProvider) ([]libdns.Zone, error) {
+func ListZones(ctx context.Context, mutex sync.Locker, client ZoneAwareClient) ([]libdns.Zone, error) {
 
 	if unlock := lock(mutex); nil != unlock {
 		defer unlock()

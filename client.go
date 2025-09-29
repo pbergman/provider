@@ -15,6 +15,7 @@ type Client interface {
 	SetDNSList(ctx context.Context, domain string, records []*libdns.RR) error
 }
 
-type ClientDomainProvider interface {
+type ZoneAwareClient interface {
+	Client
 	Domains(ctx context.Context) ([]Domain, error)
 }
