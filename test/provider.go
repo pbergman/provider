@@ -1,4 +1,4 @@
-package provider
+package test
 
 import (
 	"bufio"
@@ -29,6 +29,7 @@ func RunProviderTests(t *testing.T, provider Provider) {
 	var wg = sync.WaitGroup{}
 
 	if zoneListener, ok := provider.(libdns.ZoneLister); ok {
+		wg.Add(1)
 		t.Run("ListZones", func(t *testing.T) {
 			defer wg.Done()
 			testListZones(t, zoneListener)
@@ -40,6 +41,7 @@ func RunProviderTests(t *testing.T, provider Provider) {
 	var zones = getZonesForTesting(t, provider)
 
 	t.Run("RecordGetter", func(t *testing.T) {
+		wg.Add(1)
 		defer wg.Done()
 		testRecordGetter(t, provider, zones)
 	})

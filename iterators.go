@@ -37,13 +37,13 @@ func lookup(item *libdns.RR, records *[]libdns.Record, lookup func(a, b *libdns.
 
 func lookupByNameAndType(item *libdns.RR, records *[]libdns.Record) *libdns.Record {
 	return lookup(item, records, func(a, b *libdns.RR) bool {
-		return a.Name == b.Name && a.Type == b.Type
+		return strings.EqualFold(a.Name, b.Name) && a.Type == b.Type
 	})
 }
 
 func IsInList(item *libdns.RR, records *[]libdns.Record) bool {
 	return nil != lookup(item, records, func(a, b *libdns.RR) bool {
-		return a.Name == b.Name && a.Type == b.Type && a.Data == b.Data
+		return strings.EqualFold(a.Name, b.Name) && a.Type == b.Type && a.Data == b.Data
 	})
 }
 

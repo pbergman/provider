@@ -12,6 +12,7 @@ It implements the basic logic for the following `libdns` interfaces:
 
 By doing so, the only thing you need to implement is a `client` that can get and set zone files.  
 As a result, we should see more consistent providers since this package ensures all logic required by the contracts is handled and maintained in a single place.
+
 ---
 
 ## Client Interface
