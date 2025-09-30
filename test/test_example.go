@@ -174,8 +174,12 @@ func TestProvider_SetRecords(t *testing.T) {
 	var name = "_libdns_test_set_records_"
 
 	for _, zone := range getZones(p, t) {
-		setRecordsExample1(t, p, zone, name)
-		setRecordsExample2(t, p, zone, name)
+		t.Run("SetRecords Example 1", func(t *testing.T) {
+			setRecordsExample1(t, p, zone, name)
+		})
+		t.Run("SetRecords Example 2", func(t *testing.T) {
+			setRecordsExample2(t, p, zone, name)
+		})
 	}
 }
 
