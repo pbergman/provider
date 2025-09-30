@@ -243,7 +243,6 @@ func setRecordsExample1(t *testing.T, p DNSProvider, zone, name string) {
 			t.Fatal("AppendRecords returned unexpected records")
 		}
 	}
-
 }
 
 func setRecordsExample2(t *testing.T, p DNSProvider, zone, name string) {
@@ -350,6 +349,9 @@ func TestProvider_DeleteRecords(t *testing.T) {
 				t.Fatal("DeleteRecords returned unexpected records")
 			}
 		}
+
+		t.Log("Deleted records:")
+		printRecords(t, removed, nil)
 
 		curr, err := p.GetRecords(context.Background(), zone)
 
