@@ -1,6 +1,6 @@
 # Abstract Provider for `libdns`
 
-This package helps reduce duplicated and fragmented code for DNS providers that support replacing the **entire DNS zone file**.
+This package helps reduce duplicated and fragmented code for different DNS providers that support replacing the **entire DNS zone file**.
 
 It implements the basic logic for the following `libdns` interfaces:
 
@@ -10,8 +10,8 @@ It implements the basic logic for the following `libdns` interfaces:
 - `RecordDeleter`
 - `ZoneLister`
 
-By doing so, the only thing you need to implement is a `client`, and as a result, we should get more consistent providers since this package ensures all logic required by the contracts is handled and maintained in a single place. 
-
+By doing so, the only thing you need to implement is a `client` that can get and set zone files.  
+As a result, we should see more consistent providers since this package ensures all logic required by the contracts is handled and maintained in a single place.
 ---
 
 ## Client Interface

@@ -52,8 +52,8 @@ func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		return nil, err
 	}
 
-	for origin, record := range RecordIterator(&current) {
-		if false == isInList(&record, &records) && isEligibleForRemoval(&record, &deletes) {
+	for origin, record := range RecordIterator(&records) {
+		if false == IsInList(&record, &current) && isEligibleForRemoval(&record, &deletes) {
 			removed = append(removed, *origin)
 		}
 	}

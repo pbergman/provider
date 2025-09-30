@@ -52,8 +52,8 @@ func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone stri
 		return nil, err
 	}
 
-	for _, record := range RecordIterator(&curr) {
-		if x := lookupByNameAndType(&record, &records); x != nil {
+	for x, record := range RecordIterator(&curr) {
+		if false == IsInList(&record, &existing) && nil != lookupByNameAndType(&record, &records) {
 			ret = append(ret, *x)
 		}
 	}

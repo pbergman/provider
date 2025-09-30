@@ -41,7 +41,7 @@ func lookupByNameAndType(item *libdns.RR, records *[]libdns.Record) *libdns.Reco
 	})
 }
 
-func isInList(item *libdns.RR, records *[]libdns.Record) bool {
+func IsInList(item *libdns.RR, records *[]libdns.Record) bool {
 	return nil != lookup(item, records, func(a, b *libdns.RR) bool {
 		return a.Name == b.Name && a.Type == b.Type && a.Data == b.Data
 	})
