@@ -71,25 +71,27 @@ func printRecords(t *testing.T, records []libdns.Record, invalid libdns.Record, 
 	var buf = new(bytes.Buffer)
 	var writer = tabwriter.NewWriter(buf, 0, 4, 2, ' ', tabwriter.Debug)
 	var isWritten = false
+	var write = func(prefix string, record libdns.RR) {
+		_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", prefix, record.Name, record.TTL, record.Type, record.Data)
+	}
 
 	for _, record := range records {
 		var rr = record.RR()
 
-		if invalid == nil {
-			_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", prefix, rr.Name, rr.TTL, rr.Type, rr.Data)
-		} else {
-			var prefix = "✓ "
+		if invalid != nil {
+			prefix = "✓ "
 
 			if record.RR().Type == invalid.RR().Type && record.RR().Data == invalid.RR().Data && strings.EqualFold(record.RR().Name, invalid.RR().Name) {
-				prefix = "❌ "
+				prefix = "× "
 				isWritten = true
 			}
-			_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", prefix, rr.Name, rr.TTL, rr.Type, rr.Data)
 		}
+
+		write(prefix, rr)
 	}
 
 	if false == isWritten && nil != invalid {
-		_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", "❌ ", invalid.RR().Name, invalid.RR().TTL, invalid.RR().Type, invalid.RR().Data)
+		write("× ", invalid.RR())
 	}
 
 	_ = writer.Flush()
@@ -442,7 +444,7 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 
 	for _, zone := range zones {
 
-		var records = make([]libdns.Record, 20)
+		var records = make([]libdns.Record, 0)
 
 		for i := 1; i <= 10; i++ {
 			records = append(records,
@@ -480,7 +482,7 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Log("deleted records:")
-		printRecords(t, removed, nil, " ")
+		printRecords(t, removed, nil, "✓ ")
 
 		t.Log("checking removed records against records in zone")
 		curr, err := provider.GetRecords(context.Background(), zone)
@@ -497,7 +499,7 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 			}
 		}
 
-		t.Log("remove records based name")
+		t.Log("try to delete records based name only")
 
 		removed, err = provider.DeleteRecords(context.Background(), zone, []libdns.Record{
 			libdns.RR{Name: name},
