@@ -156,7 +156,7 @@ func testReturnTypes(t *testing.T, records []libdns.Record) {
 		case *libdns.RR, libdns.RR:
 			t.Fatalf("expecting specific RR-type instead of the opaque RR struct (%#+v)", record)
 		default:
-			_, _ = fmt.Fprintf(writer, "✓\t%s\t%s\t%T", record.RR().Name, record.RR().Type, record)
+			_, _ = fmt.Fprintf(writer, "✓\t%s\t%s\t%T\n", record.RR().Name, record.RR().Type, record)
 		}
 	}
 
