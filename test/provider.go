@@ -148,11 +148,24 @@ func testListZones(t *testing.T, provider libdns.ZoneLister) {
 }
 
 func testReturnTypes(t *testing.T, records []libdns.Record) {
+	var buf = new(bytes.Buffer)
+	var writer = tabwriter.NewWriter(buf, 0, 4, 2, ' ', tabwriter.Debug)
+
 	for _, record := range records {
 		switch record.(type) {
 		case *libdns.RR, libdns.RR:
 			t.Fatalf("expecting specific RR-type instead of the opaque RR struct (%#+v)", record)
+		default:
+			_, _ = fmt.Fprintf(writer, "✓\t%s\t%s\t%T", record.RR().Name, record.RR().Type, record)
 		}
+	}
+
+	_ = writer.Flush()
+
+	scanner := bufio.NewScanner(buf)
+
+	for scanner.Scan() {
+		t.Log(scanner.Text())
 	}
 }
 
