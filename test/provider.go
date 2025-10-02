@@ -61,12 +61,12 @@ func RunProviderTests(t *testing.T, provider Provider) {
 	})
 
 	t.Run("RecordDeleter", func(t *testing.T) {
-		testRecordsSetExample2(t, provider, zones)
+		testDeleteRecords(t, provider, zones)
 	})
 
 }
 
-func printRecords(t *testing.T, records []libdns.Record, invalid libdns.Record) {
+func printRecords(t *testing.T, records []libdns.Record, invalid libdns.Record, prefix string) {
 
 	var buf = new(bytes.Buffer)
 	var writer = tabwriter.NewWriter(buf, 0, 4, 2, ' ', tabwriter.Debug)
@@ -76,11 +76,12 @@ func printRecords(t *testing.T, records []libdns.Record, invalid libdns.Record) 
 		var rr = record.RR()
 
 		if invalid == nil {
-			_, _ = fmt.Fprintf(writer, " %s\t %s\t %s\t %s\n", rr.Name, rr.TTL, rr.Type, rr.Data)
+			_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", prefix, rr.Name, rr.TTL, rr.Type, rr.Data)
 		} else {
-			var prefix = "o "
-			if record.RR().Type == invalid.RR().Type && record.RR().Data == invalid.RR().Data && record.RR().Name == invalid.RR().Name {
-				prefix = "- "
+			var prefix = "✓ "
+
+			if record.RR().Type == invalid.RR().Type && record.RR().Data == invalid.RR().Data && strings.EqualFold(record.RR().Name, invalid.RR().Name) {
+				prefix = "❌ "
 				isWritten = true
 			}
 			_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", prefix, rr.Name, rr.TTL, rr.Type, rr.Data)
@@ -88,7 +89,7 @@ func printRecords(t *testing.T, records []libdns.Record, invalid libdns.Record) 
 	}
 
 	if false == isWritten && nil != invalid {
-		_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", "+ ", invalid.RR().Name, invalid.RR().TTL, invalid.RR().Type, invalid.RR().Data)
+		_, _ = fmt.Fprintf(writer, "%s%s\t %s\t %s\t %s\n", "❌ ", invalid.RR().Name, invalid.RR().TTL, invalid.RR().Type, invalid.RR().Data)
 	}
 
 	_ = writer.Flush()
@@ -156,7 +157,7 @@ func testReturnTypes(t *testing.T, records []libdns.Record) {
 		case *libdns.RR, libdns.RR:
 			t.Fatalf("expecting specific RR-type instead of the opaque RR struct (%#+v)", record)
 		default:
-			_, _ = fmt.Fprintf(writer, "✓\t%s\t%s\t%T\n", record.RR().Name, record.RR().Type, record)
+			_, _ = fmt.Fprintf(writer, "✓ %s\t%s\t%T\n", record.RR().Name, record.RR().Type, record)
 		}
 	}
 
@@ -182,7 +183,7 @@ func testRecordGetter(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Logf("records in zone: \"%s\"", zone)
-		printRecords(t, records, nil)
+		printRecords(t, records, nil, " ")
 
 		t.Logf("testing return record types are not of type libdns.RR")
 		testReturnTypes(t, records)
@@ -233,12 +234,12 @@ func testRecordAppender(t *testing.T, provider Provider, zones []string) {
 
 		for _, record := range helper.RecordIterator(&records) {
 			if false == helper.IsInList(&record, &out) {
-				printRecords(t, records, record)
+				printRecords(t, records, record, " ")
 				t.Fatal("returned unexpected records")
 			}
 		}
 
-		printRecords(t, records, nil)
+		printRecords(t, records, nil, "✓ ")
 
 		t.Logf("testing return record types are not of type libdns.RR")
 		testReturnTypes(t, out)
@@ -287,7 +288,7 @@ func testRecordsSetExample1(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Logf("records appended to zone \"%s\":", zone)
-		printRecords(t, out, nil)
+		printRecords(t, out, nil, "✓ ")
 
 		defer provider.DeleteRecords(context.Background(), zone, []libdns.Record{
 			libdns.Address{Name: name},
@@ -316,29 +317,29 @@ func testRecordsSetExample1(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Log("current records in zone:")
-		printRecords(t, curr, nil)
+		printRecords(t, curr, nil, " ")
 
 		var shouldNotExist = original[:2]
 
 		t.Log("testing if following records are removed")
-		printRecords(t, shouldNotExist, nil)
+		printRecords(t, shouldNotExist, nil, " ")
 
 		for invalid, record := range helper.RecordIterator(&shouldNotExist) {
 			if helper.IsInList(&record, &curr) {
 				t.Log("")
-				printRecords(t, curr, *invalid)
+				printRecords(t, curr, *invalid, " ")
 				t.Fatal("invalid records returned")
 			}
 		}
 
 		var shouldExist = append(original[2:], input[0])
 		t.Log("testing if following records are present")
-		printRecords(t, shouldExist, nil)
+		printRecords(t, shouldExist, nil, " ")
 
 		for invalid, record := range helper.RecordIterator(&shouldExist) {
 			if false == helper.IsInList(&record, &curr) {
 				t.Log("")
-				printRecords(t, curr, *invalid)
+				printRecords(t, curr, *invalid, " ")
 				t.Fatal("invalid records returned")
 			}
 		}
@@ -389,7 +390,7 @@ func testRecordsSetExample2(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Logf("records appended to zone \"%s\":", zone)
-		printRecords(t, out, nil)
+		printRecords(t, out, nil, "✓ ")
 
 		// make sure we delete all records even on failure
 		defer provider.DeleteRecords(context.Background(), zone, []libdns.Record{
@@ -418,17 +419,17 @@ func testRecordsSetExample2(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Log("current records in zone:")
-		printRecords(t, curr, nil)
+		printRecords(t, curr, nil, " ")
 
 		var shouldExist = append(original, input[2])
 
 		t.Log("testing if following records are present")
-		printRecords(t, shouldExist, nil)
+		printRecords(t, shouldExist, nil, " ")
 
 		for invalid, record := range helper.RecordIterator(&shouldExist) {
 			if false == helper.IsInList(&record, &curr) {
 				t.Log("")
-				printRecords(t, curr, *invalid)
+				printRecords(t, curr, *invalid, " ")
 				t.Fatal("AppendRecords returned unexpected records")
 			}
 		}
@@ -456,8 +457,8 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 			t.Fatalf("SetRecords failed: %v", err)
 		}
 
-		t.Logf("set following test records for zone \"%s\":", zone)
-		printRecords(t, out, nil)
+		t.Logf("set test records for zone \"%s\":", zone)
+		printRecords(t, out, nil, "✓ ")
 
 		var toRemove = records[:5]
 
@@ -473,13 +474,13 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 		for _, x := range helper.RecordIterator(&removed) {
 			if false == helper.IsInList(&x, &toRemove) {
 				t.Log("")
-				printRecords(t, toRemove, x)
+				printRecords(t, toRemove, x, " ")
 				t.Fatal("returned unexpected records")
 			}
 		}
 
 		t.Log("deleted records:")
-		printRecords(t, removed, nil)
+		printRecords(t, removed, nil, " ")
 
 		t.Log("checking removed records against records in zone")
 		curr, err := provider.GetRecords(context.Background(), zone)
@@ -491,7 +492,7 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 		for _, x := range helper.RecordIterator(&toRemove) {
 			if helper.IsInList(&x, &curr) {
 				t.Log("")
-				printRecords(t, curr, x)
+				printRecords(t, curr, x, " ")
 				t.Fatal("returned unexpected records")
 			}
 		}
@@ -507,7 +508,7 @@ func testDeleteRecords(t *testing.T, provider Provider, zones []string) {
 		}
 
 		t.Log("deleted records:")
-		printRecords(t, removed, nil)
+		printRecords(t, removed, nil, "✓ ")
 
 		if len(removed) != 15 {
 			t.Fatalf("returned invalid count of records: expecting 15 got %d", len(removed))
