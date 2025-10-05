@@ -29,7 +29,7 @@ func AppendRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 	}
 
 	for i, c := 0, len(records); i < c; i++ {
-		change = append(change, &ChangeRecord{RR: existing[i].RR(), State: Create})
+		change = append(change, &ChangeRecord{RR: records[i].RR(), State: Create})
 	}
 
 	items, err := client.SetDNSList(ctx, zone, change)
