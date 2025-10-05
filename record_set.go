@@ -2,17 +2,40 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/libdns/libdns"
 )
 
 func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, records []libdns.Record) ([]libdns.Record, error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 
+			items, err := setRecords(ctx, mutex, client, zone, records)
+
+			if errors.Is(err, SequentialLockerError) {
+				continue
+			}
+
+			return items, err
+		}
+	}
+}
+
+func setRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, records []libdns.Record) ([]libdns.Record, error) {
 	var unlock = lock(mutex)
 
 	if nil != unlock {
 		defer unlock()
+	}
+
+	if locker, ok := client.(SequentialLockableClient); ok {
+		locker.Lock()
+		defer locker.Unlock()
 	}
 
 	existing, err := GetRecords(ctx, nil, client, zone)
@@ -34,7 +57,9 @@ func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone stri
 		set = append(set, &item)
 	}
 
-	if err := client.SetDNSList(ctx, zone, set); err != nil {
+	curr, err := client.SetDNSList(ctx, zone, set)
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -46,10 +71,12 @@ func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone stri
 		defer unlock()
 	}
 
-	curr, err := GetRecords(ctx, nil, client, zone)
+	if curr == nil {
+		curr, err = GetRecords(ctx, nil, client, zone)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for x, record := range RecordIterator(&curr) {

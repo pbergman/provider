@@ -2,17 +2,39 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/libdns/libdns"
 )
 
 func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, deletes []libdns.Record) ([]libdns.Record, error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			items, err := deleteRecords(ctx, mutex, client, zone, deletes)
 
+			if errors.Is(err, SequentialLockerError) {
+				continue
+			}
+
+			return items, err
+		}
+	}
+}
+
+func deleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, deletes []libdns.Record) ([]libdns.Record, error) {
 	var unlock = lock(mutex)
 
 	if nil != unlock {
 		defer unlock()
+	}
+
+	if locker, ok := client.(SequentialLockableClient); ok {
+		locker.Lock()
+		defer locker.Unlock()
 	}
 
 	records, err := GetRecords(ctx, nil, client, zone)
@@ -34,7 +56,9 @@ func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		return []libdns.Record{}, nil
 	}
 
-	if err := client.SetDNSList(ctx, zone, items); err != nil {
+	curr, err := client.SetDNSList(ctx, zone, items)
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -46,14 +70,16 @@ func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		defer unlock()
 	}
 
-	current, err := GetRecords(ctx, nil, client, zone)
+	if nil == curr {
+		curr, err = GetRecords(ctx, nil, client, zone)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for origin, record := range RecordIterator(&records) {
-		if false == IsInList(&record, &current) && isEligibleForRemoval(&record, &deletes) {
+		if false == IsInList(&record, &curr) && isEligibleForRemoval(&record, &deletes) {
 			removed = append(removed, *origin)
 		}
 	}
