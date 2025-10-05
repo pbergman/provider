@@ -21,20 +21,26 @@ func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone stri
 		return nil, err
 	}
 
-	var set = make([]*libdns.RR, 0)
-	var ret = make([]libdns.Record, 0)
+	var change = make(ChangeList, 0)
 
 	for _, record := range RecordIterator(&existing) {
-		if nil == lookupByNameAndType(&record, &records) {
-			set = append(set, &record)
+
+		var state = NoChange
+
+		if nil != lookupByNameAndType(&record, &records) {
+			state = Delete
 		}
+
+		change = append(change, &ChangeRecord{RR: record, State: state})
 	}
 
 	for _, item := range RecordIterator(&records) {
-		set = append(set, &item)
+		change = append(change, &ChangeRecord{RR: item, State: Create})
 	}
 
-	if err := client.SetDNSList(ctx, zone, set); err != nil {
+	curr, err := client.SetDNSList(ctx, zone, change)
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -46,11 +52,15 @@ func SetRecords(ctx context.Context, mutex sync.Locker, client Client, zone stri
 		defer unlock()
 	}
 
-	curr, err := GetRecords(ctx, nil, client, zone)
+	if nil == curr {
+		curr, err = GetRecords(ctx, nil, client, zone)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	var ret = make([]libdns.Record, 0)
 
 	for x, record := range RecordIterator(&curr) {
 		if false == IsInList(&record, &existing) && nil != lookupByNameAndType(&record, &records) {

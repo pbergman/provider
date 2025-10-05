@@ -22,26 +22,33 @@ func AppendRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		return nil, err
 	}
 
-	var items = make([]*libdns.RR, 0, len(existing)+len(records))
-	var newList = append(existing, records...)
+	var change = make(ChangeList, 0, len(existing)+len(records))
 
-	for _, record := range RecordIterator(&newList) {
-		items = append(items, &record)
+	for i, c := 0, len(existing); i < c; i++ {
+		change = append(change, &ChangeRecord{RR: existing[i].RR(), State: NoChange})
 	}
 
-	if err := client.SetDNSList(ctx, zone, items); err != nil {
-		return nil, err
+	for i, c := 0, len(records); i < c; i++ {
+		change = append(change, &ChangeRecord{RR: existing[i].RR(), State: Create})
 	}
 
-	current, err := GetRecords(ctx, nil, client, zone)
+	items, err := client.SetDNSList(ctx, zone, change)
 
 	if err != nil {
 		return nil, err
 	}
 
+	if nil == items {
+		items, err = GetRecords(ctx, nil, client, zone)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var ret = make([]libdns.Record, 0)
 
-	for origin, record := range RecordIterator(&current) {
+	for origin, record := range RecordIterator(&items) {
 		if false == IsInList(&record, &existing) {
 			ret = append(ret, *origin)
 		}
