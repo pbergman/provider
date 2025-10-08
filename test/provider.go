@@ -39,12 +39,14 @@ func RunProviderTests(t *testing.T, provider Provider, mode TestMode) {
 
 	var wg sync.WaitGroup
 
-	if zoneListener, ok := provider.(libdns.ZoneLister); ok && (TestZones == (TestZones & mode)) {
-		wg.Add(1)
-		t.Run("ListZones", func(t *testing.T) {
-			defer wg.Done()
-			testListZones(t, zoneListener)
-		})
+	if zoneListener, ok := provider.(libdns.ZoneLister); ok {
+		if TestZones == (TestZones & mode) {
+			wg.Add(1)
+			t.Run("ListZones", func(t *testing.T) {
+				defer wg.Done()
+				testListZones(t, zoneListener)
+			})
+		}
 	} else {
 		t.Skipf("ListZones not implemented.")
 	}
