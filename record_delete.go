@@ -7,6 +7,12 @@ import (
 	"github.com/libdns/libdns"
 )
 
+// DeleteRecords marks the input records for deletion when they exactly match
+// or partially match existing records, following the rules defined in the
+// libdns contract.
+//
+// For more details, see:
+// https://github.com/libdns/libdns/blob/master/libdns.go#L228C1-L237C43
 func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, deletes []libdns.Record) ([]libdns.Record, error) {
 
 	var unlock = lock(mutex)
@@ -30,8 +36,9 @@ func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		if isEligibleForRemoval(&record, &deletes) {
 			state = Delete
 		}
+
 		states = states | state
-		change = append(change, &ChangeRecord{RR: record, State: state})
+		change = append(change, &ChangeRecord{record: &record, state: state})
 	}
 
 	if Delete != (Delete & states) {

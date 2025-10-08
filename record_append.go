@@ -7,9 +7,11 @@ import (
 	"github.com/libdns/libdns"
 )
 
-// AppendRecords appends new records to the existing ones without performing validation.
-// The assumption is that when the full list is returned to the provider,
-// the provider will handle any necessary validation and fail if problems are found.
+// AppendRecords appends new records to the change list performing validation.
+//
+// The assumption is that when the full list is returned to the provider, the
+// provider will handle any necessary validation and return an error if any
+// issues are found.
 func AppendRecords(ctx context.Context, mutex sync.Locker, client Client, zone string, records []libdns.Record) ([]libdns.Record, error) {
 
 	if unlock := lock(mutex); unlock != nil {
@@ -24,12 +26,12 @@ func AppendRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 
 	var change = make(ChangeList, 0, len(existing)+len(records))
 
-	for i, c := 0, len(existing); i < c; i++ {
-		change = append(change, &ChangeRecord{RR: existing[i].RR(), State: NoChange})
+	for _, record := range RecordIterator(&existing) {
+		change = append(change, &ChangeRecord{record: &record, state: NoChange})
 	}
 
-	for i, c := 0, len(records); i < c; i++ {
-		change = append(change, &ChangeRecord{RR: records[i].RR(), State: Create})
+	for _, record := range RecordIterator(&records) {
+		change = append(change, &ChangeRecord{record: &record, state: Create})
 	}
 
 	items, err := client.SetDNSList(ctx, zone, change)
