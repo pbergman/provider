@@ -123,7 +123,7 @@ func dumpLine(response *http.Response, write io.Writer, start time.Time) {
 	var req = response.Request
 	var uri string
 
-	if uri = req.RequestURI; "" != uri {
+	if uri = req.RequestURI; "" == uri {
 		uri = req.URL.RequestURI()
 	}
 
