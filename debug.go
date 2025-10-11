@@ -29,7 +29,7 @@ type OutputLevel uint8
 //	 }
 type DebugTransport struct {
 	http.RoundTripper
-	config DebugConfig
+	Config DebugConfig
 }
 
 type DebugConfig interface {
@@ -90,27 +90,27 @@ func (t *DebugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var now time.Time
 	var out io.Writer
 
-	if t.config.DebugOutputLevel() >= OutputVerbose {
-		out = t.config.DebugOutput()
+	if t.Config.DebugOutputLevel() >= OutputVerbose {
+		out = t.Config.DebugOutput()
 
 		if nil == out {
 			out = os.Stdout
 		}
 	}
-	if t.config.DebugOutputLevel() == OutputVerbose {
+	if t.Config.DebugOutputLevel() == OutputVerbose {
 		now = time.Now()
 	}
 
-	if nil != out && t.config.DebugOutputLevel() >= OutputVeryVerbose {
-		dumpWire(req, httputil.DumpRequest, "c", out, t.config.DebugOutputLevel() == OutputDebug)
+	if nil != out && t.Config.DebugOutputLevel() >= OutputVeryVerbose {
+		dumpWire(req, httputil.DumpRequest, "c", out, t.Config.DebugOutputLevel() == OutputDebug)
 	}
 
 	response, err := t.RoundTripper.RoundTrip(req)
 
 	if out != nil && nil != response {
 
-		if t.config.DebugOutputLevel() >= OutputVeryVerbose {
-			dumpWire(response, httputil.DumpResponse, "s", out, t.config.DebugOutputLevel() == OutputDebug)
+		if t.Config.DebugOutputLevel() >= OutputVeryVerbose {
+			dumpWire(response, httputil.DumpResponse, "s", out, t.Config.DebugOutputLevel() == OutputDebug)
 		} else {
 			dumpLine(response, out, now)
 		}
