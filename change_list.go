@@ -70,7 +70,26 @@ func NewChangeList(size ...int) ChangeList {
 }
 
 func (c *changes) addRecord(record *libdns.RR, state ChangeState) {
-	c.records = append(c.records, &ChangeRecord{record: record, state: state})
+	var idx *int
+
+	for i, record := range c.records {
+		if record == nil {
+			idx = &i
+			break
+		}
+	}
+
+	var change = &ChangeRecord{
+		record: record,
+		state:  state,
+	}
+
+	if idx == nil {
+		c.records = append(c.records, change)
+	} else {
+		c.records[*idx] = change
+	}
+
 	c.state |= state
 }
 
@@ -81,7 +100,7 @@ func (c *changes) Has(state ChangeState) bool {
 func (c *changes) Iterate(state ChangeState) iter.Seq[*libdns.RR] {
 	return func(yield func(*libdns.RR) bool) {
 		for i, x := 0, len(c.records); i < x; i++ {
-			if c.records[i].state == (c.records[i].state & state) {
+			if nil != c.records[i] && c.records[i].state == (c.records[i].state&state) {
 				if false == yield(c.records[i].record) {
 					return
 				}

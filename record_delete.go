@@ -27,7 +27,7 @@ func DeleteRecords(ctx context.Context, mutex sync.Locker, client Client, zone s
 		return nil, err
 	}
 
-	var change = NewChangeList(len(records))
+	var change = NewChangeList()
 
 	for _, record := range RecordIterator(&records) {
 		var state = NoChange
